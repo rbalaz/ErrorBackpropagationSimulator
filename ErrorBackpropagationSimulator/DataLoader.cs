@@ -23,9 +23,13 @@ namespace ErrorBackpropagationSimulator
             StreamReader reader = new StreamReader(stream);
 
             string line;
+            if(loadFile.Equals("data_2.csv"))
+                line = reader.ReadLine(); // skipping first line
             while ((line = reader.ReadLine()) != null)
             {
-                double[] parts = Array.ConvertAll(line.Split(), s => double.Parse(s));
+                // String representing line from file now correctly splits.
+                // Parsing string to double no correctly accepts format with dot 
+                double[] parts = Array.ConvertAll(line.Split(','), s => double.Parse(s,System.Globalization.CultureInfo.InvariantCulture));
                 Data vector = new Data(parts);
                 data.Add(vector);
             }

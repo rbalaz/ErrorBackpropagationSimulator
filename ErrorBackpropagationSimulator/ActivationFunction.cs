@@ -20,9 +20,10 @@ namespace ErrorBackpropagationSimulator
             return 1 / (1 + Math.Exp(-alfa * x));
         }
 
+        // fixed activation function derivative being calculated incorrectly
         public double getDerivatedValue(double x)
         {
-            return (alfa * Math.Exp(-alfa * x)) /((1 + Math.Exp(-alfa * x) * (1 + Math.Exp(-alfa * x))));
+            return (alfa * Math.Exp(-alfa * x)) /((1 + Math.Exp(-alfa * x)) * (1 + Math.Exp(-alfa * x)));
         }
     }
 }

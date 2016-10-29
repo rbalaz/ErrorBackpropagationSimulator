@@ -41,8 +41,13 @@ namespace ErrorBackpropagationSimulator
                             correctClass2++;
                     }
                 }
+                Console.WriteLine("Learning Success: " + evaluateNetworkSuccess(correctClass1, correctClass2, trainingData));
+            } while (evaluateNetworkSuccess(correctClass1, correctClass2, trainingData) < 95.0);
+        }
 
-            } while (evaluateNetworkSuccess(correctClass1, correctClass2, trainingData) < 95.0);          
+        public void executeOneLearningCycle(Data data)
+        {
+            network.propagate(data);
         }
 
         public double testTrainedNetwork()
@@ -100,9 +105,11 @@ namespace ErrorBackpropagationSimulator
         private void distributeData(Data[] data)
         {
             trainingData = new Data[(int)Math.Ceiling(data.Length * 0.8)];
-            trainingData = (Data[])data.Take(trainingData.Length);
+            // fixed filling training data raising InvalidCastException
+            trainingData = data.Take(trainingData.Length).ToArray();
             testingData = new Data[data.Length - trainingData.Length];
-            data.CopyTo(testingData,trainingData.Length - 1);
+            // testing data are now correctly filled without rasing ArgumentException
+            Array.Copy(data, trainingData.Length, testingData, 0, data.Length - trainingData.Length);
         }
 
         private double evaluateNetworkSuccess(int correctClass1, int correctClass2, Data[] data)

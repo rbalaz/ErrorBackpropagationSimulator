@@ -8,17 +8,7 @@ namespace ErrorBackpropagationSimulator
 {
     class Synapse
     {
-        public double weight
-        {
-            get
-            {
-                return weight;
-            }
-            set
-            {
-                weight += value;
-            }
-        }
+        private double weight;
         public Neuron beforeNeuron { get; private set; }
         public Neuron afterNeuron { get; set; }
 
@@ -38,5 +28,19 @@ namespace ErrorBackpropagationSimulator
             return beforeNeuron.output;
         }
 
+        public double getWeight()
+        {
+            return weight;
+        }
+
+        public void incrementWeight(double increment)
+        {
+            weight += increment;
+        }
+
+        public void setWeight(double value)
+        {
+            weight = value;
+        }
     }
 }

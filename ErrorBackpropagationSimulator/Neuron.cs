@@ -8,7 +8,6 @@ namespace ErrorBackpropagationSimulator
 {
     class Neuron
     {
-        class IllegalArgumentException : Exception { }
         public enum NeuronTypes { input, hidden, output }
 
         private ActivationFunction f;
@@ -40,11 +39,12 @@ namespace ErrorBackpropagationSimulator
             {
                 try
                 {
-                    this.input += s.weight * input.getInputByNumber(inputCounter++);
+                    this.input += s.getWeight() * input.getInputByNumber(inputCounter++);
                 }
-                catch (IllegalArgumentException)
+                // removed redundant exception causing error when counting bias values
+                catch (Data.IllegalArgumentException)
                 {
-                    this.input += s.weight * bias;
+                    this.input += s.getWeight() * bias;
                 }
             }
         }
@@ -53,9 +53,9 @@ namespace ErrorBackpropagationSimulator
             this.input = 0;
             for (int i = 0; i < input.Length; i++)
             {
-                this.input += synapses[i].weight * input[i];
+                this.input += synapses[i].getWeight() * input[i];
             }
-            this.input = synapses[synapses.Count - 1].weight * bias;
+            this.input += synapses[synapses.Count - 1].getWeight() * bias;
         }
 
         public void evaluateOutput()

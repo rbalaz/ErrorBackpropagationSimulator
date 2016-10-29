@@ -20,34 +20,61 @@ namespace ErrorBackpropagationSimulator
         public double x9 { get; private set; }
         public int ev { get; private set; }
 
+        private int amount;
+
         public Data(double[] inputs)
         {
-            x1 = inputs[0];
-            x2 = inputs[1];
-            x3 = inputs[2];
-            x4 = inputs[3];
-            x5 = inputs[4];
-            x6 = inputs[5];
-            x7 = inputs[6];
-            x8 = inputs[7];
-            x9 = inputs[8];
-            ev = (int)inputs[9];
+            if (inputs.Length == 10)
+            {
+                x1 = inputs[0];
+                x2 = inputs[1];
+                x3 = inputs[2];
+                x4 = inputs[3];
+                x5 = inputs[4];
+                x6 = inputs[5];
+                x7 = inputs[6];
+                x8 = inputs[7];
+                x9 = inputs[8];
+                ev = (int)inputs[9];
+                amount = 10;
+            }
+            if (inputs.Length == 4)
+            {
+                x1 = inputs[0];
+                x2 = inputs[1];
+                x3 = inputs[2];
+                ev = (int)inputs[3];
+                amount = 4;
+            }
         }
 
         public double getInputByNumber(int input)
         {
-            switch (input)
+            if (amount == 10)
             {
-                case 1: return x1;
-                case 2: return x2;
-                case 3: return x3;
-                case 4: return x4;
-                case 5: return x5;
-                case 6: return x6;
-                case 7: return x7;
-                case 8: return x8;
-                case 9: return x9;
-                default: throw new IllegalArgumentException(); 
+                switch (input)
+                {
+                    case 1: return x1;
+                    case 2: return x2;
+                    case 3: return x3;
+                    case 4: return x4;
+                    case 5: return x5;
+                    case 6: return x6;
+                    case 7: return x7;
+                    case 8: return x8;
+                    case 9: return x9;
+                    default: throw new IllegalArgumentException();
+                }
+            }
+            else
+            {
+                switch (input)
+                {
+                    case 1: return x1;
+                    case 2: return x2;
+                    case 3: return x3;
+                    default: throw new IllegalArgumentException();
+                }
             }
         }
     }
