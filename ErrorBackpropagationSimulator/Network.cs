@@ -13,6 +13,8 @@ namespace ErrorBackpropagationSimulator
 
         public double learningParameter { get; set; }
 
+        public double outputTolerance { get; set; }
+
         public Network()
         {
             layers = new List<Neuron[]>();
@@ -83,11 +85,13 @@ namespace ErrorBackpropagationSimulator
         }
 
         // fixed backpropagate stopping after first hidden layer 
+        // implemented tolerance to output calculation based on the fact that NN will reach ideal state only after 
+        // infinite amount of iterations
         private void backPropagate(Neuron[] layer, Data data)
         {
             if (layer[0].type == Neuron.NeuronTypes.output)
             {
-                if (data.ev != (int)layer[0].output)
+                if (Math.Abs(data.ev - layer[0].output) > outputTolerance)
                 {
                     layer[0].evaluateErrorSignal(data.ev - layer[0].output);
                     backPropagate(layers[layers.IndexOf(layer) - 1], data);

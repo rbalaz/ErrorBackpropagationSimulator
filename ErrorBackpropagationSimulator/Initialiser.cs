@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -48,15 +49,53 @@ namespace ErrorBackpropagationSimulator
             return network;
         }
 
+        public Network createMultiHiddenLayerNetwork()
+        {
+            string[] stringNeurons = initString.Split(' ');
+            int[] neurons = new int[stringNeurons.Length];
+            for (int i = 0; i < stringNeurons.Length; i++)
+            {
+                neurons[i] = int.Parse(stringNeurons[i]);
+            }
+
+            Neuron[] inputLayer = new Neuron[neurons[0]];
+            Neuron[][] hiddenLayers = new Neuron[stringNeurons.Length - 2][];
+            for (int i = 0; i < stringNeurons.Length - 2; i++)
+            {
+                hiddenLayers[i] = new Neuron[neurons[1 + i]];
+            }
+            Neuron[] outputLayer = new Neuron[neurons[neurons.Length - 1]];
+
+            fillLayer(inputLayer, inputs, Neuron.NeuronTypes.input);
+            // fixed synapses not being properly initiated for non-input neurons
+            fillNonInputLayer(inputLayer, hiddenLayers[0], inputLayer.Length, Neuron.NeuronTypes.hidden);
+            for (int i = 1; i < stringNeurons.Length - 2; i++)
+            {
+                fillNonInputLayer(hiddenLayers[i - 1], hiddenLayers[i], hiddenLayers[i - 1].Length, Neuron.NeuronTypes.hidden);
+            }
+            fillNonInputLayer(hiddenLayers[stringNeurons.Length - 3], outputLayer, hiddenLayers[stringNeurons.Length - 3].Length, Neuron.NeuronTypes.output);
+
+            Network network = new Network();
+            network.addLayer(inputLayer);
+            for (int i = 0; i < stringNeurons.Length - 2; i++)
+            {
+                network.addLayer(hiddenLayers[i]);
+            }
+            network.addLayer(outputLayer);
+
+            return network;
+        }
+
+        // Weight initialising changed from 0 to 1
         private void fillLayer(Neuron[] layer, int inputs, Neuron.NeuronTypes type)
         {
             for (int i = 0; i < layer.Length; i++)
             {
-                layer[i] = new Neuron(type, 0.75, -1);
+                layer[i] = new Neuron(type, 1, -1);
                 for (int j = 0; j < inputs; j++)
                 {
                     Synapse s = new Synapse(layer[i]);
-                    s.setWeight(0);
+                    s.setWeight(generateSynapseWeight(null, inputs));
                     layer[i].synapses.Add(s);
                 }
                 Synapse biasSynapse = new Synapse(layer[i]);
@@ -65,19 +104,53 @@ namespace ErrorBackpropagationSimulator
             }
         }
 
+        private void fillLayer(Neuron[] layer, int inputs, Neuron.NeuronTypes type, double[][] weights, double alfa)
+        {
+            for (int i = 0; i < layer.Length; i++)
+            {
+                layer[i] = new Neuron(type, alfa, -1);
+                for (int j = 0; j < inputs; j++)
+                {
+                    Synapse s = new Synapse(layer[i]);
+                    s.setWeight(weights[i][j]);
+                    layer[i].synapses.Add(s);
+                }
+                Synapse biasSynapse = new Synapse(layer[i]);
+                biasSynapse.setWeight(weights[layer.Length][inputs]);
+                layer[i].synapses.Add(biasSynapse);
+            }
+        }
+
         private void fillNonInputLayer(Neuron[] previousLayer, Neuron[] layer, int inputs, Neuron.NeuronTypes type)
         {
             for (int i = 0; i < layer.Length; i++)
             {
-                layer[i] = new Neuron(type, 0.75, -1);
+                layer[i] = new Neuron(type, 1, -1);
                 for (int j = 0; j < inputs; j++)
                 {
                     Synapse s = new Synapse(previousLayer[j], layer[i]);
-                    s.setWeight(0);
+                    s.setWeight(generateSynapseWeight(previousLayer, inputs));
                     layer[i].synapses.Add(s);
                 }
                 Synapse biasSynapse = new Synapse(layer[i]);
                 biasSynapse.setWeight(1);
+                layer[i].synapses.Add(biasSynapse);
+            }
+        }
+
+        private void fillNonInputLayer(Neuron[] previousLayer, Neuron[] layer, int inputs, Neuron.NeuronTypes type, double[][] weights, double alfa)
+        {
+            for (int i = 0; i < layer.Length; i++)
+            {
+                layer[i] = new Neuron(type, alfa, -1);
+                for (int j = 0; j < inputs; j++)
+                {
+                    Synapse s = new Synapse(previousLayer[j], layer[i]);
+                    s.setWeight(weights[i][j]);
+                    layer[i].synapses.Add(s);
+                }
+                Synapse biasSynapse = new Synapse(layer[i]);
+                biasSynapse.setWeight(weights[layer.Length][inputs]);
                 layer[i].synapses.Add(biasSynapse);
             }
         }
@@ -137,6 +210,91 @@ namespace ErrorBackpropagationSimulator
             network.addLayer(inputLayer);
             network.addLayer(hiddenLayer);
             network.addLayer(outputLayer);
+
+            return network;
+        }
+
+        private double generateSynapseWeight(Neuron[] previousLayer, int inputs)
+        {
+            if (previousLayer == null)
+            {
+                Random random = new Random();
+                int intWeight = random.Next(48);
+                return ((intWeight) - 24) / (10 * inputs);
+            }
+            else
+            {
+                Random random = new Random();
+                int intWeight = random.Next(48);
+                return ((intWeight) - 24) / (10 * previousLayer.Length);
+            }
+        }
+
+        public Network loadNetworkFromFile(string fileName, out Data[] trainingData, out Data[] testingData)
+        {
+            FileStream stream = new FileStream(fileName, FileMode.Open, FileAccess.Read);
+            StreamReader reader = new StreamReader(stream);
+            string line = reader.ReadLine();
+            string[] neuronsInLayers = line.Split();
+            string activationParameters = reader.ReadLine();
+            double alfa = double.Parse(activationParameters.Split(' ')[1]);
+            double learningParameter = double.Parse(reader.ReadLine());
+            double outputTolerance = double.Parse(reader.ReadLine());
+
+            Neuron[][] layers = new Neuron[neuronsInLayers.Length][];
+            double[][][] weights = new double[neuronsInLayers.Length][][]; 
+            for (int i = 0; i < neuronsInLayers.Length; i++)
+            {
+                layers[i] = new Neuron[int.Parse(neuronsInLayers[i])];
+                weights[i] = new double[int.Parse(neuronsInLayers[i])][];
+            }
+
+            int neuronCounter = 0;
+            int layerCounter = 0;
+
+            while ((line = reader.ReadLine()) != "Training data")
+            {
+                if (line.Contains("Layer"))
+                {
+                    layerCounter++;
+                    neuronCounter = 0;
+                }
+                if (line.Contains("Neuron"))
+                    neuronCounter++;
+
+                weights[layerCounter][neuronCounter] = Array.ConvertAll(line.Split(' '), s => double.Parse(s, System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            List<Data> trainingDataList = new List<Data>();
+            List<Data> testingDataList = new List<Data>();
+            while ((line = reader.ReadLine()) != "Testing data")
+            {
+                double[] inputs = Array.ConvertAll(line.Split(' '), s => double.Parse(s, System.Globalization.CultureInfo.InvariantCulture));
+                trainingDataList.Add(new Data(inputs));
+            }
+            while ((line = reader.ReadLine()) != null)
+            {
+                double[] inputs = Array.ConvertAll(line.Split(' '), s => double.Parse(s, System.Globalization.CultureInfo.InvariantCulture));
+                testingDataList.Add(new Data(inputs));
+            }
+            trainingData = trainingDataList.ToArray();
+            testingData = testingDataList.ToArray();
+
+            fillLayer(layers[0], weights[0][0].Length, Neuron.NeuronTypes.input, weights[0], alfa);
+            for (int i = 1; i < neuronsInLayers.Length - 2; i++)
+            {
+                fillNonInputLayer(layers[i - 1], layers[i], layers[i - 1].Length, Neuron.NeuronTypes.hidden, weights[i], alfa);
+            }
+            fillNonInputLayer(layers[neuronsInLayers.Length - 2], layers[neuronsInLayers.Length - 1], 
+                layers[neuronsInLayers.Length - 2].Length, Neuron.NeuronTypes.output, weights[neuronsInLayers.Length - 1], alfa);
+
+            Network network = new Network();
+            for (int i = 0; i < neuronsInLayers.Length; i++)
+            {
+                network.addLayer(layers[i]);
+            }
+            network.learningParameter = learningParameter;
+            network.outputTolerance = outputTolerance;
 
             return network;
         }

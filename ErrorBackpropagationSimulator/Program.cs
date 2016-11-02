@@ -10,22 +10,32 @@ namespace ErrorBackpropagationSimulator
     {
         static void Main(string[] args)
         {
-            demoExample();
+            nineInputCase();
             Console.ReadLine();
         }
 
         static void nineInputCase()
         {
-            Initialiser init = new Initialiser("2 2 2 1", 9);
-            Network network = init.createNeuralNetwork();
+            Initialiser init = new Initialiser("5 15 1", 9);
+            Network network = init.createMultiHiddenLayerNetwork();
 
             DataLoader loader = new DataLoader("data_2.csv");
             Data[] data = loader.loadDataFromFile();
 
-            Learning learning = new Learning(0.1, data, network);
-            learning.executeLearningCycle();
+            Learning learning = new Learning(2, data, network);
+            learning.executeLearningCycle(95.0);
+        }
 
-            Console.WriteLine("Network testing success: " + learning.testTrainedNetwork());
+        static void continueLearning(string fileName)
+        {
+            Initialiser init = new Initialiser();
+
+            Data[] trainingData;
+            Data[] testingData;
+            Network network = init.loadNetworkFromFile(fileName, out trainingData, out testingData);
+
+            Learning learning = new Learning(trainingData, testingData, network);
+            learning.executeLearningCycle(99.0);
         }
 
         static void demoExample()

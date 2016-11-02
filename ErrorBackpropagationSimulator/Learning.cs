@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Linq;
+using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,15 +20,28 @@ namespace ErrorBackpropagationSimulator
         {
             this.learningParameter = learningParameter;
             this.network = network;
+            network.learningParameter = learningParameter;
+            network.outputTolerance = 0.01;
             distributeData(shuffleData(data));
         }
 
-        public void executeLearningCycle()
+        public Learning(Data[] trainingData, Data[] testingData, Network network)
+        {
+            this.trainingData = trainingData;
+            this.testingData = testingData;
+            this.network = network;
+            learningParameter = network.learningParameter;
+        }
+
+        public void executeLearningCycle(double successRate)
         {
             int correctClass1;
             int correctClass2;
+            Stopwatch watch = new Stopwatch();
+            int iterationCounter = 1;
             do
             {
+                watch.Start();
                 correctClass1 = 0;
                 correctClass2 = 0;
 
@@ -40,9 +55,18 @@ namespace ErrorBackpropagationSimulator
                         else
                             correctClass2++;
                     }
+                    else
+                        Console.WriteLine(i + " Expected value:" + trainingData[i].ev + " Calculated value: " + network.layers[network.layers.Count - 1][0].output + " " + network.currentIterationSuccess);
                 }
-                Console.WriteLine("Learning Success: " + evaluateNetworkSuccess(correctClass1, correctClass2, trainingData));
-            } while (evaluateNetworkSuccess(correctClass1, correctClass2, trainingData) < 95.0);
+                watch.Stop();
+                Console.WriteLine(iterationCounter++ + ": Learning Success: " + evaluateNetworkSuccess(correctClass1, correctClass2, trainingData) + " Time elapsed: " + watch.Elapsed);
+                watch.Reset();
+                if (iterationCounter % 50 == 0)
+                    saveNeuralNetwork();
+            } while (evaluateNetworkSuccess(correctClass1, correctClass2, trainingData) < successRate);
+            printContingencyTable(correctClass1, correctClass2, "training");
+            testTrainedNetwork();
+            saveNeuralNetwork();
         }
 
         public void executeOneLearningCycle(Data data)
@@ -50,7 +74,7 @@ namespace ErrorBackpropagationSimulator
             network.propagate(data);
         }
 
-        public double testTrainedNetwork()
+        private void testTrainedNetwork()
         {
             int correctClass1 = 0;
             int correctClass2 = 0;
@@ -65,20 +89,14 @@ namespace ErrorBackpropagationSimulator
                         correctClass2++;
                 }
             }
-            return evaluateNetworkSuccess(correctClass1, correctClass2, testingData);
+            printContingencyTable(correctClass1, correctClass2, "testing");
         }
 
         private static Data[] shuffleData(Data[] data)
         {
             Data[] shuffledData = data;
-            List<int> usedNumbers = new List<int>();
             for (int i = 0; i < data.Length; i++)
-            {
-                if (usedNumbers.IndexOf(i) != -1)
-                    continue;
-                if (data.Length - usedNumbers.Count == 1)
-                    break;
-
+            { 
                 Random generator = new Random();
                 int random;
                 bool uniqueNumberGenerated;
@@ -86,10 +104,8 @@ namespace ErrorBackpropagationSimulator
                 {
                     random = generator.Next(data.Length);
                     uniqueNumberGenerated = false;
-                    if (usedNumbers.IndexOf(random) == -1)
+                    if(i != random)
                     {
-                        usedNumbers.Add(random);
-                        usedNumbers.Add(i);
                         Data temp;
                         temp = shuffledData[random];
                         shuffledData[random] = shuffledData[i];
@@ -101,7 +117,6 @@ namespace ErrorBackpropagationSimulator
             return shuffledData;
         }
 
-        // This needs testing, I have no clue if these functions actually work as intended
         private void distributeData(Data[] data)
         {
             trainingData = new Data[(int)Math.Ceiling(data.Length * 0.8)];
@@ -112,12 +127,88 @@ namespace ErrorBackpropagationSimulator
             Array.Copy(data, trainingData.Length, testingData, 0, data.Length - trainingData.Length);
         }
 
-        private double evaluateNetworkSuccess(int correctClass1, int correctClass2, Data[] data)
+        private double evaluateNetworkSuccess( double correctClass1, double correctClass2, Data[] data)
         {
-            int class1Success = correctClass1 / data.Count(item => item.ev == 0);
-            int class2Success = correctClass2 / data.Count(item => item.ev == 1);
+            double class1Success = correctClass1 / data.Count(item => item.ev == 0);
+            double class2Success = correctClass2 / data.Count(item => item.ev == 1);
 
             return 50 * (class1Success + class2Success);
+        }
+
+        private void printContingencyTable(int correctClassA, int correctClassB, string type)
+        {
+            if (type.Equals("training"))
+            {
+                Console.WriteLine(">>>Contingency table for NN {0}<<<", type);
+                Console.WriteLine("--------------------");
+                Console.WriteLine("| ev/x |  a  |  b  |");
+                Console.WriteLine("--------------------");
+                Console.WriteLine("|   a  | {0} | {1} |", correctClassA, trainingData.Count(item => item.ev == 0));
+                Console.WriteLine("--------------------");
+                Console.WriteLine("|   b  | {0} | {1} |", correctClassB, trainingData.Count(item => item.ev == 1));
+                Console.WriteLine("--------------------");
+            }
+            if (type.Equals("testing"))
+            {
+                Console.WriteLine(">>>Contingency table for NN {0}<<<", type);
+                Console.WriteLine("--------------------");
+                Console.WriteLine("| ev/x |  a  |  b  |");
+                Console.WriteLine("--------------------");
+                Console.WriteLine("|   a  | {0} | {1} |", correctClassA, testingData.Count(item => item.ev == 0));
+                Console.WriteLine("--------------------");
+                Console.WriteLine("|   b  | {0} | {1} |", correctClassB, testingData.Count(item => item.ev == 1));
+                Console.WriteLine("--------------------");
+            }
+        }
+
+        private void saveNeuralNetwork()
+        {
+            string name = (new Random()).Next(2345678).ToString();
+            name = string.Concat(name, ".txt");
+            FileStream stream = new FileStream(name, FileMode.OpenOrCreate, FileAccess.Write);
+            StreamWriter writer = new StreamWriter(stream);
+
+            string init = "";
+            foreach (Neuron[] n in network.layers)
+            {
+                init = string.Concat(init, n.Length + " ");
+            }
+            init = init.Trim(' ');
+            writer.WriteLine(init);
+            writer.WriteLine(network.layers[0][0].f.type + " " + network.layers[0][0].f.alfa);
+            writer.WriteLine(learningParameter);
+            writer.WriteLine(network.outputTolerance);
+
+            int counter = 1;
+            foreach (Neuron[] n in network.layers)
+            {
+                writer.WriteLine("Layer " + counter++ + ":");
+                for (int i = 0; i < n.Length; i++)
+                {
+                    writer.WriteLine("Neuron " + (i + 1) + ":");
+                    string weights = "";
+                    foreach (Synapse s in n[i].synapses)
+                    {
+                        weights = string.Concat(weights, s.getWeight() + " ");
+                    }
+                    weights = weights.Trim(' ');
+                    writer.WriteLine(weights);
+                }
+            }
+
+            writer.WriteLine("Training data");
+            for (int i = 0; i < trainingData.Length; i++)
+            {
+                writer.WriteLine(trainingData[i]);
+            }
+            writer.WriteLine("Testing data");
+            for (int i = 0; i < testingData.Length; i++)
+            {
+                writer.WriteLine(testingData[i]);
+            }
+
+            writer.Close();
+            stream.Close();
         }
     }
 }

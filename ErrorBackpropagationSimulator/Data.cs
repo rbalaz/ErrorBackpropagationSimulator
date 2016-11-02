@@ -77,5 +77,13 @@ namespace ErrorBackpropagationSimulator
                 }
             }
         }
+
+        public override string ToString()
+        {
+            if (amount == 4)
+                return (x1 + " " + x2 + " " + x3 + " " + "|" + ev);
+            else
+                return (x1 + " " + x2 + " " + x3 + " " + x4 + " " + x5 + " " + x6 + " " + x7 + " " + x8 + " " + x9 + " " + "|" + ev);
+        }
     }
 }

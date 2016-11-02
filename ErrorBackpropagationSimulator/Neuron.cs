@@ -10,8 +10,9 @@ namespace ErrorBackpropagationSimulator
     {
         public enum NeuronTypes { input, hidden, output }
 
-        private ActivationFunction f;
+        public ActivationFunction f { get; private set; }
         public double output { get; private set; }
+        public double thresholdedOutput { get; private set; }
         public double input { get; private set; }
         public double bias { get; private set; }
         public List<Synapse> synapses { get; }
@@ -23,7 +24,7 @@ namespace ErrorBackpropagationSimulator
             this.type = type;
             this.bias = bias;
             synapses = new List<Synapse>();
-            f = new ActivationFunction(alfa);
+            f = new ActivationFunction(alfa,"sigmoid");
         }
 
         public void addSynapse(Synapse synapse)
@@ -61,6 +62,7 @@ namespace ErrorBackpropagationSimulator
         public void evaluateOutput()
         {
             output = f.getValue(input);
+            thresholdedOutput = applyThreshold();
         }
 
         private double evaluateDerivatedOutput()
@@ -71,6 +73,16 @@ namespace ErrorBackpropagationSimulator
         public void evaluateErrorSignal(double value)
         {
             errorSignal = value * evaluateDerivatedOutput();
+        }
+
+        public double applyThreshold()
+        {
+            double output = this.output;
+            if (type == NeuronTypes.output)
+            {
+                output = this.output >= 0.5 ? 1 : 0;
+            }
+            return output;
         }
     }
 }
