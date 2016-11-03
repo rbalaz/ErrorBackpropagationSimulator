@@ -15,13 +15,15 @@ namespace ErrorBackpropagationSimulator
         private Data[] trainingData;
         private Data[] testingData;
         private Network network;
+        private double outputTolerance;
 
-        public Learning(double learningParameter, Data[] data, Network network)
+        public Learning(double learningParameter, Data[] data, Network network, double outputTolerance)
         {
             this.learningParameter = learningParameter;
             this.network = network;
             network.learningParameter = learningParameter;
-            network.outputTolerance = 0.01;
+            this.outputTolerance = outputTolerance;
+            network.outputTolerance = outputTolerance;
             distributeData(shuffleData(data));
         }
 
@@ -31,12 +33,14 @@ namespace ErrorBackpropagationSimulator
             this.testingData = testingData;
             this.network = network;
             learningParameter = network.learningParameter;
+            outputTolerance = network.outputTolerance;
         }
 
         public void executeLearningCycle(double successRate)
         {
             int correctClass1;
             int correctClass2;
+            double globalError;
             Stopwatch watch = new Stopwatch();
             int iterationCounter = 1;
             do
@@ -44,6 +48,7 @@ namespace ErrorBackpropagationSimulator
                 watch.Start();
                 correctClass1 = 0;
                 correctClass2 = 0;
+                globalError = 0;
 
                 for (int i = 0; i < trainingData.Length; i++)
                 {
@@ -55,14 +60,13 @@ namespace ErrorBackpropagationSimulator
                         else
                             correctClass2++;
                     }
-                    else
-                        Console.WriteLine(i + " Expected value:" + trainingData[i].ev + " Calculated value: " + network.layers[network.layers.Count - 1][0].output + " " + network.currentIterationSuccess);
+                    globalError += network.currentIterationError * network.currentIterationError;
                 }
+                changeLearningParameter(evaluateNetworkSuccess(correctClass1, correctClass1, trainingData));
+                network.learningParameter = learningParameter;
                 watch.Stop();
                 Console.WriteLine(iterationCounter++ + ": Learning Success: " + evaluateNetworkSuccess(correctClass1, correctClass2, trainingData) + " Time elapsed: " + watch.Elapsed);
                 watch.Reset();
-                if (iterationCounter % 50 == 0)
-                    saveNeuralNetwork();
             } while (evaluateNetworkSuccess(correctClass1, correctClass2, trainingData) < successRate);
             printContingencyTable(correctClass1, correctClass2, "training");
             testTrainedNetwork();
@@ -74,7 +78,7 @@ namespace ErrorBackpropagationSimulator
             network.propagate(data);
         }
 
-        private void testTrainedNetwork()
+        public void testTrainedNetwork()
         {
             int correctClass1 = 0;
             int correctClass2 = 0;
@@ -88,6 +92,7 @@ namespace ErrorBackpropagationSimulator
                     else
                         correctClass2++;
                 }
+                Console.WriteLine(i + " Expected value:" + testingData[i].ev + " Calculated value: " + network.layers[network.layers.Count - 1][0].output + " " + network.currentIterationSuccess);
             }
             printContingencyTable(correctClass1, correctClass2, "testing");
         }
@@ -127,6 +132,19 @@ namespace ErrorBackpropagationSimulator
             Array.Copy(data, trainingData.Length, testingData, 0, data.Length - trainingData.Length);
         }
 
+        private void changeLearningParameter(double successRate)
+        {
+            // 95 and more...0.01
+            // 50 and less... 10
+
+            if (successRate < 50)
+                learningParameter = 10;
+            else if (successRate > 95)
+                learningParameter = 0.01;
+            else
+                learningParameter = -0.222 * successRate + 21.1;
+        }
+
         private double evaluateNetworkSuccess( double correctClass1, double correctClass2, Data[] data)
         {
             double class1Success = correctClass1 / data.Count(item => item.ev == 0);
@@ -143,9 +161,9 @@ namespace ErrorBackpropagationSimulator
                 Console.WriteLine("--------------------");
                 Console.WriteLine("| ev/x |  a  |  b  |");
                 Console.WriteLine("--------------------");
-                Console.WriteLine("|   a  | {0} | {1} |", correctClassA, trainingData.Count(item => item.ev == 0));
+                Console.WriteLine("|   a  | {0} | {1} |", correctClassA, trainingData.Count(item => item.ev == 0) - correctClassA);
                 Console.WriteLine("--------------------");
-                Console.WriteLine("|   b  | {0} | {1} |", correctClassB, trainingData.Count(item => item.ev == 1));
+                Console.WriteLine("|   b  | {0} | {1} |", correctClassB, trainingData.Count(item => item.ev == 1) - correctClassB);
                 Console.WriteLine("--------------------");
             }
             if (type.Equals("testing"))
@@ -154,9 +172,9 @@ namespace ErrorBackpropagationSimulator
                 Console.WriteLine("--------------------");
                 Console.WriteLine("| ev/x |  a  |  b  |");
                 Console.WriteLine("--------------------");
-                Console.WriteLine("|   a  | {0} | {1} |", correctClassA, testingData.Count(item => item.ev == 0));
+                Console.WriteLine("|   a  | {0} | {1} |", correctClassA, testingData.Count(item => item.ev == 0) - correctClassA);
                 Console.WriteLine("--------------------");
-                Console.WriteLine("|   b  | {0} | {1} |", correctClassB, testingData.Count(item => item.ev == 1));
+                Console.WriteLine("|   b  | {0} | {1} |", correctClassB, testingData.Count(item => item.ev == 1) - correctClassB);
                 Console.WriteLine("--------------------");
             }
         }

@@ -11,6 +11,8 @@ namespace ErrorBackpropagationSimulator
         public List<Neuron[]> layers { get; private set; }
         public bool currentIterationSuccess { get; private set; }
 
+        public double currentIterationError { get; private set; }
+
         public double learningParameter { get; set; }
 
         public double outputTolerance { get; set; }
@@ -49,7 +51,10 @@ namespace ErrorBackpropagationSimulator
                 layer[i].evaluateOutput();
             }
             if (layer[0].type == Neuron.NeuronTypes.output)
-                return layer[0].output;
+            {
+                layer[0].applyThreshold(outputTolerance);
+                return layer[0].thresholdedOutput;
+            }
             else
                 return compute(layers[layers.IndexOf(layer) + 1]);
         }
@@ -93,11 +98,15 @@ namespace ErrorBackpropagationSimulator
             {
                 if (Math.Abs(data.ev - layer[0].output) > outputTolerance)
                 {
+                    currentIterationError = data.ev - layer[0].output;
                     layer[0].evaluateErrorSignal(data.ev - layer[0].output);
                     backPropagate(layers[layers.IndexOf(layer) - 1], data);
                 }
                 else
+                {
+                    currentIterationError = 0;
                     currentIterationSuccess = true;
+                }
             }
             else
             {

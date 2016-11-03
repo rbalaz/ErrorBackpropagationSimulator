@@ -62,7 +62,6 @@ namespace ErrorBackpropagationSimulator
         public void evaluateOutput()
         {
             output = f.getValue(input);
-            thresholdedOutput = applyThreshold();
         }
 
         private double evaluateDerivatedOutput()
@@ -75,14 +74,16 @@ namespace ErrorBackpropagationSimulator
             errorSignal = value * evaluateDerivatedOutput();
         }
 
-        public double applyThreshold()
+        public void applyThreshold(double tolerance)
         {
-            double output = this.output;
-            if (type == NeuronTypes.output)
+            if (output >= 0.5)
             {
-                output = this.output >= 0.5 ? 1 : 0;
+                thresholdedOutput = output >= (1 - tolerance) ? 1 : output;
             }
-            return output;
+            else
+            {
+                thresholdedOutput = output <= tolerance ? 0 : output;
+            }
         }
     }
 }

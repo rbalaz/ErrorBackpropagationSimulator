@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Threading;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -91,7 +93,7 @@ namespace ErrorBackpropagationSimulator
         {
             for (int i = 0; i < layer.Length; i++)
             {
-                layer[i] = new Neuron(type, 1, -1);
+                layer[i] = new Neuron(type, 1.5, -1);
                 for (int j = 0; j < inputs; j++)
                 {
                     Synapse s = new Synapse(layer[i]);
@@ -125,7 +127,7 @@ namespace ErrorBackpropagationSimulator
         {
             for (int i = 0; i < layer.Length; i++)
             {
-                layer[i] = new Neuron(type, 1, -1);
+                layer[i] = new Neuron(type, 1.5, -1);
                 for (int j = 0; j < inputs; j++)
                 {
                     Synapse s = new Synapse(previousLayer[j], layer[i]);
@@ -216,18 +218,21 @@ namespace ErrorBackpropagationSimulator
 
         private double generateSynapseWeight(Neuron[] previousLayer, int inputs)
         {
+            Thread.Sleep(10);
+            double weight;
             if (previousLayer == null)
             {
                 Random random = new Random();
                 int intWeight = random.Next(48);
-                return ((intWeight) - 24) / (10 * inputs);
+                weight = (double)(intWeight - 24) / (double)(10 * inputs);
             }
             else
             {
                 Random random = new Random();
                 int intWeight = random.Next(48);
-                return ((intWeight) - 24) / (10 * previousLayer.Length);
+                weight = (double)(intWeight - 24) / (double)(10 * previousLayer.Length);
             }
+            return weight;
         }
 
         public Network loadNetworkFromFile(string fileName, out Data[] trainingData, out Data[] testingData)
@@ -258,11 +263,18 @@ namespace ErrorBackpropagationSimulator
                 {
                     layerCounter++;
                     neuronCounter = 0;
+                    continue;
                 }
                 if (line.Contains("Neuron"))
+                {
                     neuronCounter++;
+                    continue;
+                }
 
-                weights[layerCounter][neuronCounter] = Array.ConvertAll(line.Split(' '), s => double.Parse(s, System.Globalization.CultureInfo.InvariantCulture));
+                NumberFormatInfo format = new NumberFormatInfo();
+                format.NumberDecimalSeparator = ",";
+
+                weights[layerCounter - 1][neuronCounter - 1] = Array.ConvertAll(line.Split(' '), s => double.Parse(s, format));
             }
 
             List<Data> trainingDataList = new List<Data>();

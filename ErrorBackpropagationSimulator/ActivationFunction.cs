@@ -31,7 +31,7 @@ namespace ErrorBackpropagationSimulator
             if (type.Equals("sigmoid"))
                 return (alfa * Math.Exp(-alfa * x)) / ((1 + Math.Exp(-alfa * x)) * (1 + Math.Exp(-alfa * x)));
             else
-                return 1 - getValue(x) * getValue(x);
+                return 1 - (getValue(x) * getValue(x));
         }
     }
 }
