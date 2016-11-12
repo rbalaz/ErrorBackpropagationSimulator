@@ -1,0 +1,54 @@
+﻿@Model ErrorBackpropagationMVC.Models.TestingFormModel
+
+@{
+    ViewBag.Title = "Testing results";
+}
+
+<h2>Testing results</h2>
+<p>Neurons in layers: @ViewBag.Layers</p>
+<p>Datasheet used: @Model.fileName</p>
+<p>Learning parameter: @ViewBag.LearningParameter</p>
+<p>Output tolerance: @ViewBag.ErrorTolerance</p>
+
+<br>
+
+<h3>Contingency table for learning</h3>
+<table title="Contingency table for learning" border="1">
+    <tr>
+        <th>ev/x</th>
+        <th>Class examples</th>
+        <th>Classified as that class</th>
+    </tr>
+    @{
+        char name = 'a';
+        for (int i = 0; i < ViewBag.LearningTable.Length; i++)
+        {
+            <tr>
+                <th>@(name++)</th>
+                <td>@ViewBag.LearningTable[i][0]</td>
+                <td>@ViewBag.LearningTable[i][1]</td>
+            </tr>
+        }
+    }
+</table>
+<br><br>
+<h3>Contingency table for testing</h3>
+<table title="Contingency table for testing" border="1">
+    <tr>
+        <th>ev/x</th>
+        <th>Class examples</th>
+        <th>Classified as that class</th>
+    </tr>
+    @{
+        name = 'a';
+        for (int i = 0; i < ViewBag.TestingTable.Length; i++)
+        {
+            <tr>
+                <th>@(name++)</th>
+                <td>@ViewBag.TestingTable[i][0]</td>
+                <td>@ViewBag.TestingTable[i][1]</td>
+            </tr>
+        }
+    }
+</table>
+
