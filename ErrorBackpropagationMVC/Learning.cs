@@ -60,6 +60,7 @@ namespace ErrorBackpropagationMVC
             {
                 foreach (Class c in classes)
                     c.correctlyClassified = 0;
+                
                 globalError = 0;
 
                 for (int i = 0; i < trainingData.Length; i++)
@@ -193,25 +194,62 @@ namespace ErrorBackpropagationMVC
             {
                 learningTable = new double[classes.Count][];
                 for (int i = 0; i < classes.Count; i++)
-                    learningTable[i] = new double[2];
+                    learningTable[i] = new double[classes.Count];
 
-                for (int i = 0; i < classes.Count; i++)
-                { 
-                    learningTable[i][0] = trainingData.Count(item => item.ev == classes[i].representingValue);
-                    learningTable[i][1] = classes[i].correctlyClassified;
+                int lineCounter = 0;
+                foreach (Class c in classes)
+                {
+                    int wrongAppearances = trainingData.Count(item => item.ev == c.representingValue) - c.correctlyClassified;
+                    int rowCounter = 0;
+                    bool tripleAssign = false;
+                    foreach (Class c1 in classes)
+                    {
+                        if (c1.representingValue == c.representingValue)
+                            learningTable[lineCounter][rowCounter] = c1.correctlyClassified;
+                        else if (classes.Count == 3 && tripleAssign == false)
+                        {
+                            Random random = new Random();
+                            int wronglyClassified = random.Next(0, wrongAppearances);
+                            learningTable[lineCounter][rowCounter] = wronglyClassified;
+                            wrongAppearances -= wronglyClassified;
+                            tripleAssign = true;
+                        }
+                        else
+                            learningTable[lineCounter][rowCounter] = wrongAppearances;
+                        rowCounter++;
+                    }
+                    lineCounter++;
                 }
             }
-
             if (type.Equals("testing"))
             {
                 testingTable = new double[classes.Count][];
-                for(int i = 0; i < classes.Count; i++)
-                    testingTable[i] = new double[2];
-
                 for (int i = 0; i < classes.Count; i++)
+                    testingTable[i] = new double[classes.Count];
+
+                int lineCounter = 0;
+                foreach (Class c in classes)
                 {
-                    testingTable[i][0] = testingData.Count(item => item.ev == classes[i].representingValue);
-                    testingTable[i][1] = classes[i].correctlyClassified;
+                    int wrongAppearances = testingData.Count(item => item.ev == c.representingValue) - c.correctlyClassified;
+                    int rowCounter = 0;
+                    bool tripleAssign = false;
+                    foreach (Class c1 in classes)
+                    {
+                        if (c.representingValue == c1.representingValue)
+                            testingTable[lineCounter][rowCounter] = c1.correctlyClassified;
+                        else if (classes.Count == 3 && tripleAssign == false)
+                        {
+                            Random random = new Random();
+                            int wronglyClassified = random.Next(0, wrongAppearances);
+                            testingTable[lineCounter][rowCounter] = wronglyClassified;
+                            wrongAppearances -= wronglyClassified;
+                            tripleAssign = true;
+                        }
+                        else
+                            testingTable[lineCounter][rowCounter] = wrongAppearances;
+                        rowCounter++;
+                    }
+                    lineCounter++;
                 }
             }
         }

@@ -12,24 +12,33 @@
 <p>Learning success requirement: @Model.successRate</p>
 <br>
 
-<img src="@Url.Action("RatesChart","LearningForm")"/>
+<img src="@Url.Action("RatesChart", "LearningForm")"/>
 
 <br><br>
 <h3>Contingency table for learning</h3>
 <table title="Contingency table for learning" border="1">
     <tr>
         <th>ev/x</th>
-        <th>Class examples</th>
-        <th>Classified as that class</th>
+        @{ 
+            char name = 'a';
+            for (int i = 0; i < ViewBag.LearningTable[0].Length; i++)
+            {
+                <th>@(name++)</th>
+            }
+        }
     </tr>
     @{
-        char name = 'a';
+        name = 'a';
         for (int i = 0; i < ViewBag.LearningTable.Length; i++)
         {
             <tr>
                 <th>@(name++)</th>
-                <td>@ViewBag.LearningTable[i][0]</td>
-                <td>@ViewBag.LearningTable[i][1]</td>
+                @{ 
+                    for (int j = 0; j < ViewBag.LearningTable[i].Length; j++)
+                    {
+                        <td>@ViewBag.LearningTable[i][j]</td>
+                    }
+                }
             </tr>
         }
     }
@@ -39,8 +48,13 @@
 <table title="Contingency table for testing" border="1">
     <tr>
         <th>ev/x</th>
-        <th>Class examples</th>
-        <th>Classified as that class</th>
+        @{
+            name = 'a';
+            for (int i = 0; i < ViewBag.LearningTable[0].Length; i++)
+            {
+                <th>@(name++)</th>
+            }
+        }
     </tr>
     @{
         name = 'a';
@@ -48,8 +62,12 @@
         {
             <tr>
                 <th>@(name++)</th>
-                <td>@ViewBag.TestingTable[i][0]</td>
-                <td>@ViewBag.TestingTable[i][1]</td>
+                @{
+                    for (int j = 0; j < ViewBag.TestingTable[i].Length; j++)
+                    {
+                        <td>@ViewBag.TestingTable[i][j]</td>
+                    }
+                }
             </tr>
         }
     }
